@@ -1,0 +1,47 @@
+version: '3.7'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+        - rabbitmq_net
+  background_worker:
+    build: ./background_worker
+    environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq/
+      - INPUT_QUEUE=input
+      - OUTPUT_QUEUE=output
+    depends_on:
+      - rabbitmq
+    networks:
+      - rabbitmq_net
+  http_api:
+    build: ./http_api
+    ports:
+      - 8000:8000
+    environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq/
+      - INPUT_QUEUE=input
+    depends_on:
+      - background_worker
+    networks:
+      - rabbitmq_net
+  web_socket_api:
+    build: ./web_socket_api
+    environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq/
+      - OUTPUT_QUEUE=output
+    depends_on:
+      - background_worker
+    networks:
+      - rabbitmq_net
+
+networks:
+  rabbitmq_net:
+    driver: bridge
