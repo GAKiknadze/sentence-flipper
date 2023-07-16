@@ -1,2 +1,2 @@
-aiopika
+aio-pika
 loguru
